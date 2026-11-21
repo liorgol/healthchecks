@@ -15,7 +15,7 @@ RUN \
     rm -rf /opt/healthchecks/.git && \
     rm -rf /opt/healthchecks/stuff
 
-FROM python:3.13.7-slim-trixie
+FROM python:3.13.18-slim-trixie
 
 RUN useradd --system hc
 ENV PYTHONUNBUFFERED=1
@@ -47,3 +47,8 @@ USER hc
 ENV USE_GZIP_MIDDLEWARE=True
 HEALTHCHECK --start-period=20s --start-interval=5s --interval=60s --retries=1 CMD ./fetchstatus.py
 CMD [ "uwsgi", "/opt/healthchecks/docker/uwsgi.ini"]
+# Added by CVE Remediator: security updates for packages the image ships
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade apt bsdutils gzip libapt-pkg7.0 libblkid1 libcap2 liblastlog2-2 libmount1 libpcre2-8-0 libsmartcols1 libsqlite3-0 libssl3t64 libuuid1 login mount openssl openssl-provider-legacy perl-base util-linux zlib1g && rm -rf /var/lib/apt/lists/*
+RUN for init in $(find / -xdev -path '*/site-packages/setuptools/__init__.py' 2>/dev/null); do root="${init%/lib/python*}"; py=$(ls "$root"/bin/python3* 2>/dev/null | head -n 1); if [ -n "$py" ] && "$py" -m pip --version >/dev/null 2>&1; then "$py" -m pip install --no-cache-dir --upgrade setuptools; fi; done
+USER hc
